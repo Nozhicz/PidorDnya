@@ -364,7 +364,7 @@
 <body class="" style="visibility: hidden;">
 
 <section id="top_sect" class="second">
-    <button id="main_btn" onclick="DemoApp.sendMessage('Леша пидор дня');">Send «Hello, World!»</button>
+    <button id="main_btn" onclick="DemoApp.sendMessage('');">Send «Hello, World!»</button>
     <button id="with_webview_btn" onclick="DemoApp.sendMessage('', true);">Send «Hello, World!» with inline webview button</button>
     <button id="share_btn" onclick="DemoApp.sendMessage('', false, true);">Share «Hello, World!»</button>
     <button id="share_ww_btn" onclick="DemoApp.sendMessage('', true, true);">Share «Hello, World!» with inline button</button>
@@ -782,6 +782,151 @@
             }
         },
 
+        // device orientation
+        deviceOrientationInit() {
+            Telegram.WebApp.onEvent('deviceOrientationStarted', function() {
+                var span = document.getElementById('device_orientation_btn').nextElementSibling;
+                span.textContent = '';
+                span.className = '';
+                DemoApp.updateDeviceOrientationLink();
+            })
+
+            Telegram.WebApp.onEvent('deviceOrientationStopped', function() {
+                var span = document.getElementById('device_orientation_btn').nextElementSibling;
+                span.textContent = '';
+                span.className = '';
+                DemoApp.updateDeviceOrientationLink();
+            })
+
+            Telegram.WebApp.onEvent('deviceOrientationChanged', function() {
+                var span = document.getElementById('device_orientation_btn').nextElementSibling;
+                span.textContent = '(alpha: ' + this.DeviceOrientation.alpha +
+                    '; beta: ' + this.DeviceOrientation.beta +
+                    '; gamma: ' + this.DeviceOrientation.gamma +
+                    '; absolute: ' + (this.DeviceOrientation.absolute ? 'true' : 'false') + ')';
+                span.className = 'ok';
+            })
+
+            Telegram.WebApp.onEvent('deviceOrientationFailed', function(params) {
+                var span = document.getElementById('device_orientation_btn').nextElementSibling;
+                span.textContent = '(ERR: ' + params.error + ')';
+                span.className = 'err';
+            })
+
+            DemoApp.updateDeviceOrientationLink()
+        },
+        toggleDeviceOrientation(el, need_absolute) {
+            if (Telegram.WebApp.DeviceOrientation.isStarted) {
+                Telegram.WebApp.DeviceOrientation.stop();
+            } else {
+                Telegram.WebApp.DeviceOrientation.start({ refresh_rate: 100, need_absolute: need_absolute });
+            }
+        },
+        updateDeviceOrientationLink() {
+            var deviceOrientationBtn = document.getElementById('device_orientation_btn');
+            var absItem = document.getElementById('device_orientation_abs_item');
+
+            if (Telegram.WebApp.DeviceOrientation.isStarted) {
+                deviceOrientationBtn.innerHTML = 'Stop DeviceOrientation';
+                absItem.style.display = 'none';
+            } else {
+                deviceOrientationBtn.innerHTML = 'Start DeviceOrientation(need_absolute=false)';
+                absItem.style.display = 'block';
+            }
+        },
+
+        // gyroscope
+        gyroscopeInit() {
+            Telegram.WebApp.onEvent('gyroscopeStarted', function() {
+                var span = document.getElementById('gyroscope_btn').nextElementSibling;
+                span.textContent = '';
+                span.className = '';
+                DemoApp.updateGyroscopeLink();
+            })
+
+            Telegram.WebApp.onEvent('gyroscopeStopped', function() {
+                var span = document.getElementById('gyroscope_btn').nextElementSibling;
+                span.textContent = '';
+                span.className = '';
+                DemoApp.updateGyroscopeLink();
+            })
+
+            Telegram.WebApp.onEvent('gyroscopeChanged', function() {
+                var span = document.getElementById('gyroscope_btn').nextElementSibling;
+                span.textContent = '(x: ' + this.Gyroscope.x + '; y: ' + this.Gyroscope.y + '; z: ' + this.Gyroscope.z + ')';
+                span.className = 'ok';
+            })
+
+            Telegram.WebApp.onEvent('gyroscopeFailed', function(params) {
+                var span = document.getElementById('gyroscope_btn').nextElementSibling;
+                span.textContent = '(ERR: ' + params.error + ')';
+                span.className = 'err';
+            })
+
+            DemoApp.updateGyroscopeLink()
+        },
+        toggleGyroscope(el) {
+            if (Telegram.WebApp.Gyroscope.isStarted) {
+                Telegram.WebApp.Gyroscope.stop();
+            } else {
+                Telegram.WebApp.Gyroscope.start({ refresh_rate: 100 });
+            }
+        },
+        updateGyroscopeLink() {
+            var gyroscopeBtn = document.getElementById('gyroscope_btn');
+            if (Telegram.WebApp.Gyroscope.isStarted) {
+                gyroscopeBtn.innerHTML = 'Stop Gyroscope';
+            } else {
+                gyroscopeBtn.innerHTML = 'Start Gyroscope';
+            }
+        },
+
+        // location
+        locationInit(el) {
+            const locationManager = Telegram.WebApp.LocationManager;
+
+            if (!DemoApp.locationInited) {
+                DemoApp.locationInited = true;
+                Telegram.WebApp.onEvent('locationManagerUpdated', function() {
+                    document.getElementById('loc_inited').textContent = locationManager.isInited ? 'true' : 'false';
+                    document.getElementById('loc_available').textContent = locationManager.isLocationAvailable ? 'true' : 'false';
+                    document.getElementById('loc_access_requested').textContent = locationManager.isAccessRequested ? 'true' : 'false';
+                    document.getElementById('loc_access_granted').textContent = locationManager.isAccessGranted ? 'true' : 'false';
+                    document.getElementById('loc_settings').style.display = (locationManager.isLocationAvailable && locationManager.isAccessRequested && !locationManager.isAccessGranted) ? 'block' : 'none';
+                });
+            }
+            locationManager.init();
+        },
+        locationGet(el) {
+            const locationManager = Telegram.WebApp.LocationManager;
+            if (!locationManager.isInited) {
+                return DemoApp.showAlert('Location not inited yet!');
+            }
+
+            locationManager.getLocation(function(location_data) {
+                const span = el.nextElementSibling;
+                if (location_data) {
+                    span.textContent = '(' + JSON.stringify(location_data) + ')';
+                    span.className = 'ok';
+                } else {
+                    span.textContent = '(Request declined)';
+                    span.className = 'err';
+                }
+            })
+        },
+        locationOpenSettings(el) {
+            const locationManager = Telegram.WebApp.LocationManager;
+            if (!locationManager.isInited) {
+                return DemoApp.showAlert('Location not inited yet!');
+            }
+
+            if (!locationManager.isLocationAvailable || !locationManager.isAccessRequested || locationManager.isAccessGranted) {
+                return false;
+            }
+
+            locationManager.openSettings();
+        },
+
         // version to string Example: '6.9'
         doesntSupport(version) {
             // console.log("version: " + version);
@@ -798,9 +943,295 @@
         // actions
         sendMessage(msg_id, with_webview) {
             if (!DemoApp.initDataUnsafe.query_id) {
-                alert('Леша пидор дня');
+                alert('WebViewQueryId not defined');
                 return;
             }
+
+            document.querySelectorAll('button').forEach((btn) => btn.disabled = true);
+
+            const btn       = document.querySelector('#btn_status');
+            btn.textContent = 'Sending...';
+
+            DemoApp.apiRequest('sendMessage', {
+                msg_id      : msg_id || '',
+                with_webview: !DemoApp.initDataUnsafe.receiver && with_webview ? 1 : 0
+            }, function (result) {
+                document.querySelectorAll('button').forEach((btn) => btn.disabled = false);
+
+                if (result.response) {
+                    if (result.response.ok) {
+                        btn.textContent   = 'Message sent successfully!';
+                        btn.className     = 'ok';
+                        btn.style.display = 'block';
+                    } else {
+                        btn.textContent   = result.response.description;
+                        btn.className     = 'err';
+                        btn.style.display = 'block';
+                        alert(result.response.description);
+                    }
+                } else if (result.error) {
+                    btn.textContent   = result.error;
+                    btn.className     = 'err';
+                    btn.style.display = 'block';
+                    alert(result.error);
+                } else {
+                    btn.textContent   = 'Unknown error';
+                    btn.className     = 'err';
+                    btn.style.display = 'block';
+                    alert('Unknown error');
+                }
+            });
+        },
+        changeMenuButton(close) {
+            document.querySelectorAll('button').forEach((btn) => btn.disabled = true);
+            const btnStatus       = document.querySelector('#btn_status');
+            btnStatus.textContent = 'Changing button...';
+
+            DemoApp.apiRequest('changeMenuButton', {}, function (result) {
+                document.querySelectorAll('button').forEach((btn) => btn.disabled = false);
+
+                if (result.response) {
+                    if (result.response.ok) {
+                        btnStatus.textContent   = 'Button changed!';
+                        btnStatus.className     = 'ok';
+                        btnStatus.style.display = 'block';
+                        Telegram.WebApp.close();
+                    } else {
+                        btnStatus.textContent   = result.response.description;
+                        btnStatus.className     = 'err';
+                        btnStatus.style.display = 'block';
+                        alert(result.response.description);
+                    }
+                } else if (result.error) {
+                    btnStatus.textContent   = result.error;
+                    btnStatus.className     = 'err';
+                    btnStatus.style.display = 'block';
+                    alert(result.error);
+                } else {
+                    btnStatus.textContent   = 'Unknown error';
+                    btnStatus.className     = 'err';
+                    btnStatus.style.display = 'block';
+                    alert('Unknown error');
+                }
+            });
+            if (close) {
+                setTimeout(function () {
+                    Telegram.WebApp.close();
+                }, 50);
+            }
+        },
+        checkInitData() {
+            const webViewStatus = document.querySelector('#webview_data_status');
+            if (DemoApp.initDataUnsafe.query_id &&
+                DemoApp.initData &&
+                webViewStatus.classList.contains('status_need')
+            ) {
+                webViewStatus.classList.remove('status_need');
+                DemoApp.apiRequest('checkInitData', {}, function (result) {
+                    if (result.ok) {
+                        webViewStatus.textContent = 'Hash is correct (async)';
+                        webViewStatus.className   = 'ok';
+                    } else {
+                        webViewStatus.textContent = result.error + ' (async)';
+                        webViewStatus.className   = 'err';
+                    }
+                });
+            }
+        },
+        sendText(spam) {
+            const textField = document.querySelector('#text_field');
+            const text      = textField.value;
+            if (!text.length) {
+                return textField.focus();
+            }
+            if (byteLength(text) > 4096) {
+                return alert('Text is too long');
+            }
+
+            const repeat = spam ? 10 : 1;
+            for (let i = 0; i < repeat; i++) {
+                Telegram.WebApp.sendData(text);
+            }
+        },
+        sendTime(spam) {
+            const repeat = spam ? 10 : 1;
+            for (let i = 0; i < repeat; i++) {
+                Telegram.WebApp.sendData(new Date().toString());
+            }
+        },
+        switchInlineQuery(query, chooseChat) {
+            if (chooseChat) {
+                const chatTypes = []
+                const types = ['users', 'bots', 'groups', 'channels'];
+                for (let i = 0; i < types.length; i++) {
+                    const el = document.getElementById('select-' + types[i]);
+                    if (el.checked) {
+                        chatTypes.push(types[i]);
+                    }
+                }
+
+                if (!chooseChatTypes.length) {
+                    return DemoApp.showAlert('Select chat types!');
+                }
+
+                Telegram.WebApp.switchInlineQuery(query, chatTypes)
+            }
+
+            Telegram.WebApp.switchInlineQuery(query, false)
+        },
+
+        // Alerts
+        showAlert(message) {
+            Telegram.WebApp.showAlert(message);
+        },
+        showConfirm(message) {
+            Telegram.WebApp.showConfirm(message);
+        },
+        requestContact() {
+            Telegram.WebApp.requestContact(function (result) {
+                if (result) {
+                    DemoApp.showAlert('Contact granted');
+                } else {
+                    DemoApp.showAlert('Contact denied');
+                }
+            });
+        },
+        isVersionAtLeast(version) {
+            return Telegram.WebApp.isVersionAtLeast(version);
+        },
+        showPopup() {
+            Telegram.WebApp.showPopup({
+                title  : 'Popup title',
+                message: 'Popup message',
+                buttons: [
+                    {id: 'delete', type: 'destructive', text: 'Delete all'},
+                    {id: 'faq', type: 'default', text: 'Open FAQ'},
+                    {type: 'cancel'},
+                ]
+            }, function (buttonId) {
+                if (buttonId === 'delete') {
+                    DemoApp.showAlert("'Delete all' selected");
+                } else if (buttonId === 'faq') {
+                    Telegram.WebApp.openLink('https://telegram.org/faq');
+                }
+            });
+        },
+        showScanQrPopup: function (linksOnly) {
+            Telegram.WebApp.showScanQrPopup({
+                text: linksOnly ? 'with any link' : 'for test purposes'
+            }, function (text) {
+                if (linksOnly) {
+                    const lowerText = text.toString().toLowerCase();
+                    if (lowerText.substring(0, 7) === 'http://' ||
+                        lowerText.substring(0, 8) === 'https://'
+                    ) {
+                        setTimeout(function () {
+                            Telegram.WebApp.openLink(text);
+                        }, 50);
+
+                        return true;
+                    }
+                } else {
+                    DemoApp.showAlert(text);
+
+                    return true;
+                }
+            });
+        },
+
+        // Permissions
+        requestLocation(el) {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    el.nextElementSibling.innerHTML = '(' + position.coords.latitude + ', ' + position.coords.longitude + ')';
+                    el.nextElementSibling.className = 'ok';
+                });
+            } else {
+                el.nextElementSibling.innerHTML = 'Geolocation is not supported in this browser.';
+                el.nextElementSibling.className = 'err';
+            }
+            return false;
+        },
+        requestVideo(el) {
+            if (navigator.mediaDevices) {
+                navigator.mediaDevices.getUserMedia({audio: false, video: true}).then(function (stream) {
+                    el.nextElementSibling.innerHTML = '(Access granted)';
+                });
+            } else {
+                el.nextElementSibling.innerHTML = 'Media devices is not supported in this browser.';
+                el.nextElementSibling.className = 'err';
+            }
+            return false;
+        },
+        requestAudio(el) {
+            if (navigator.mediaDevices) {
+                navigator.mediaDevices.getUserMedia({audio: true, video: false}).then(function (stream) {
+                    el.nextElementSibling.innerHTML = '(Access granted)';
+                    el.nextElementSibling.className = 'ok';
+                });
+            } else {
+                el.nextElementSibling.innerHTML = 'Media devices is not supported in this browser.';
+                el.nextElementSibling.className = 'err';
+            }
+            return false;
+        },
+        requestAudioVideo(el) {
+            if (navigator.mediaDevices) {
+                navigator.mediaDevices.getUserMedia({audio: true, video: true}).then(function (stream) {
+                    el.nextElementSibling.innerHTML = '(Access granted)';
+                    el.nextElementSibling.className = 'ok';
+                });
+            } else {
+                el.nextElementSibling.innerHTML = 'Media devices is not supported in this browser.';
+                el.nextElementSibling.className = 'err';
+            }
+            return false;
+        },
+        testClipboard(el) {
+            Telegram.WebApp.readTextFromClipboard(function (clipText) {
+                if (clipText === null) {
+                    el.nextElementSibling.innerHTML = 'Clipboard text unavailable.';
+                    el.nextElementSibling.className = 'err';
+                } else {
+                    el.nextElementSibling.innerHTML = '(Read from clipboard: Â«' + clipText + 'Â»)';
+                    el.nextElementSibling.className = 'ok';
+                }
+            });
+            return false;
+        },
+        requestWriteAccess(el) {
+            Telegram.WebApp.requestWriteAccess(function(allowed) {
+                if (allowed) {
+                    el.nextElementSibling.innerHTML = '(Access granted)'
+                    el.nextElementSibling.className = 'ok'
+                } else {
+                    el.nextElementSibling.innerHTML = '(User declined this request)'
+                    el.nextElementSibling.className = 'err'
+                }
+            })
+        },
+        requestPhoneNumber(el) {
+            Telegram.WebApp.requestContact(function(sent, event) {
+                if (sent) {
+                    el.nextElementSibling.innerHTML = '(Phone number sent to the bot' + (event && event.responseUnsafe && event.responseUnsafe.contact && event.responseUnsafe.contact.phone_number ? ': +' + event.responseUnsafe.contact.phone_number : '') + ')'
+                    el.nextElementSibling.className = 'ok'
+                } else {
+                    el.nextElementSibling.innerHTML = '(User declined this request)'
+                    el.nextElementSibling.className = 'err'
+                }
+            })
+        },
+        requestServerTime(el) {
+            Telegram.WebApp.invokeCustomMethod('getCurrentTime', {}, function(err, time) {
+                if (err) {
+                    el.nextElementSibling.innerHTML = '(' + err + ')'
+                    el.nextElementSibling.className = 'err'
+                } else {
+                    el.nextElementSibling.innerHTML = '(' + (new Date(time * 1000)).toString() + ')'
+                    el.nextElementSibling.className = 'ok'
+                }
+            });
+        },
 
         // cloud storage
         cloudStorageKeys: {},
